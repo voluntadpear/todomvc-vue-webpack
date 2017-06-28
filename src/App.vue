@@ -9,7 +9,7 @@
       <section class="main" v-if="todos.length > 0">
         <input class="toggle-all" type="checkbox" v-model="areAllCompleted">
         <label for="toggle-all">Mark all as complete</label>
-        <router-view @completeToggled="toggleComplete" @removeClicked="removeTodo" @textChanged="textChanged" :todos="todos"></router-view>
+        <router-view :todos="todos"></router-view>
       </section>
       <!-- This footer should hidden by default and shown when there are todos -->
       <footer class="footer" v-if="todos.length > 0">
@@ -46,6 +46,7 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import filters from './FilterFunctions'
+import bus from './Bus'
 import TodoInput from './TodoInput.vue'
 import TodoList from './TodoList.vue'
 import Filters from './Filters.vue'
@@ -106,6 +107,13 @@ export default {
       },
       deep: true
     }
+  },
+  created() {
+    bus.$on("completeToggled", (val, todo) => todo.completed = val)
+    bus.$on("removeClicked", function (todo) {
+      this.todos = this.todos.filter(x => x != todo)
+    }.bind(this))
+    bus.$on("textChanged", (val, todo) => todo.text = val)
   },
   methods: {
     addCurrentTodo() {

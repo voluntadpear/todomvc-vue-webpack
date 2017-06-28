@@ -1,8 +1,8 @@
 <template>
-    <li :class="{completed, editing}" class="todo">
+    <li :class="{completed: todo.completed, editing}" class="todo">
         <div class="view">
             <input class="toggle" type="checkbox" v-model="isCompleted" @change="toggleComplete">
-            <label @dblclick="startEditing">{{ text }}</label>
+            <label @dblclick="startEditing">{{ todo.text }}</label>
             <button class="destroy" @click="removeTodo"></button>
         </div>
         <input class="edit" v-model="newText" @blur="stopEditing" @keyup.enter="stopEditing" @keyup.esc="cancelEditing">
@@ -10,32 +10,34 @@
 </template>
 
 <script>
+import bus from './Bus'
+
 export default {
-    props: ["text", "completed"],
+    props: ["todo"],
     data() {
         return {
-            newText: this.text,
+            newText: this.todo.text,
             editing: false,
-            isCompleted: this.completed
+            isCompleted: this.todo.completed
         }
     },
     methods: {
         toggleComplete() {
-            this.$emit("completeToggled", this.isCompleted)
+            bus.$emit("completeToggled", this.isCompleted, this.todo)
         },
         removeTodo() {
-            this.$emit("removeClicked")
+            bus.$emit("removeClicked", this.todo)
         },
         startEditing() {
             this.editing = true
         },
         stopEditing() {
             if (!this.newText || !this.newText.trim()) {
-                this.$emit("removeClicked")
+                bus.$emit("removeClicked", this.todo)
                 return
             }
             this.editing = false
-            this.$emit("textChanged", this.newText)
+            bus.$emit("textChanged", this.newText, this.todo)
         },
         cancelEditing() {
             this.editing = false
