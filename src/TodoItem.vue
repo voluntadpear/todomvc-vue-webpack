@@ -1,8 +1,8 @@
 <template>
-    <li :class="{completed, editing}" class="todo">
+    <li :class="{completed: todo.completed, editing}" class="todo">
         <div class="view">
             <input class="toggle" type="checkbox" v-model="isCompleted" @change="toggleComplete">
-            <label @dblclick="startEditing">{{ text }}</label>
+            <label @dblclick="startEditing">{{ todo.text }}</label>
             <button class="destroy" @click="removeTodo"></button>
         </div>
         <input class="edit" v-model="newText" @blur="stopEditing" @keyup.enter="stopEditing" @keyup.esc="cancelEditing">
@@ -10,32 +10,33 @@
 </template>
 
 <script>
+import {SET_COMPLETION_STATE, REMOVE_TODO, UPDATE_TODO_TEXT} from './mutation-types'
 export default {
-    props: ["text", "completed"],
+    props: ["todo"],
     data() {
         return {
-            newText: this.text,
+            newText: this.todo.text,
             editing: false,
             isCompleted: this.completed
         }
     },
     methods: {
         toggleComplete() {
-            this.$emit("completeToggled", this.isCompleted)
+            this.$store.commit(SET_COMPLETION_STATE, {todo: this.todo, isCompleted: this.isCompleted})
         },
         removeTodo() {
-            this.$emit("removeClicked")
+            this.$store.commit(REMOVE_TODO, this.todo)
         },
         startEditing() {
             this.editing = true
         },
         stopEditing() {
             if (!this.newText || !this.newText.trim()) {
-                this.$emit("removeClicked")
+                this.$store.commit(REMOVE_TODO, this.todo)
                 return
             }
             this.editing = false
-            this.$emit("textChanged", this.newText)
+            this.$store.commit(UPDATE_TODO_TEXT, {todo: this.todo, newText: this.newText})
         },
         cancelEditing() {
             this.editing = false

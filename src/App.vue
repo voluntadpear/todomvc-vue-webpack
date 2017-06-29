@@ -3,13 +3,13 @@
     <section class="todoapp">
       <header class="header">
         <h1>todos</h1>
-        <todo-input placeholder="Qué hay que hacer?" v-model="newTodo" @itemAdded="addCurrentTodo"></todo-input>
+        <todo-input placeholder="Qué hay que hacer?" v-model="newTodo" @itemAdded="addTodo"></todo-input>
       </header>
       <!-- This section should be hidden by default and shown when there are todos -->
       <section class="main" v-if="todos.length > 0">
         <input class="toggle-all" type="checkbox" v-model="areAllCompleted">
         <label for="toggle-all">Mark all as complete</label>
-        <router-view @completeToggled="toggleComplete" @removeClicked="removeTodo" @textChanged="textChanged" :todos="todos"></router-view>
+        <router-view :todos="todos"></router-view>
       </section>
       <!-- This footer should hidden by default and shown when there are todos -->
       <footer class="footer" v-if="todos.length > 0">
@@ -44,17 +44,56 @@
 
 <script>
 import Vue from 'vue'
+import Vuex, {mapState, mapGetters, mapMutations} from "vuex"
 import VueRouter from 'vue-router'
+import { 
+  ADD_TODO, 
+  UPDATE_NEW_TODO, 
+  SET_COMPLETION_STATE,
+  REMOVE_TODO,
+  UPDATE_TODO_TEXT,
+  CLEAR_COMPLETED
+} from './mutation-types'
 import filters from './FilterFunctions'
 import TodoInput from './TodoInput.vue'
 import TodoList from './TodoList.vue'
 import Filters from './Filters.vue'
+
 const About = () => import('./About.vue')
+
 Vue.use(VueRouter)
+Vue.use(Vuex)
 
-let data = {
+const store = new Vuex.Store({
+  state: {
+    todos: JSON.parse(localStorage.getItem("todos")) || [],
+    newTodo: ""
+  },
+  getters: {
+    remaining: state => state.todos.filter(t => !t.completed).length
+  },
+  mutations: {
+    [ADD_TODO]: state => {
+      const value = state.newTodo && state.newTodo.trim()
+      if (!value) {
+        return
+      }
+      state.todos.push({
+        text: value,
+        completed: false
+      })
+      state.newTodo = ""
+    },
+    [UPDATE_NEW_TODO]: (state, text) => state.newTodo = text,
+    [SET_COMPLETION_STATE]: (state, {todo, isCompleted}) => todo.completed = isCompleted,
+    [REMOVE_TODO]: (state, todo) => state.todos = state.todos.filter(x => x != todo),
+    [UPDATE_TODO_TEXT]: (state, {todo, newText}) => todo.text = newText,
+    [CLEAR_COMPLETED]: state => state.todos = filters['active'](state.todos)
+    
+  },
+  strict: true
+})
 
-}
 const routes = [
   { path: "/home", component: TodoList, props: { filter: "all" } },
   { path: "/completed", component: TodoList, props: { filter: "completed" } },
@@ -67,8 +106,6 @@ export default {
   data() {
     return {
       msg: 'Que se yo',
-      newTodo: "",
-      todos: JSON.parse(localStorage.getItem("todos")) || [],
       shouldShowAbout: false
     }
   },
@@ -86,18 +123,26 @@ export default {
       return `${value}s`
     }
   },
+  store,
   computed: {
-    remaining() {
-      return this.todos.filter(t => !t.completed).length
-    },
     areAllCompleted: {
       get: function () {
-        return this.remaining == 0
+        return this.remaining === 0
       },
       set: function (value) {
         this.todos.forEach(todo => todo.completed = value)
       }
-    }
+    },
+    newTodo: {
+      get: function() {
+        return this.$store.state.newTodo
+      },
+      set: function(val) {
+        this.$store.commit(UPDATE_NEW_TODO, val)
+      }
+    },
+    ...mapState(['todos']),
+    ...mapGetters(['remaining'])
   },
   watch: {
     todos: {
@@ -108,32 +153,10 @@ export default {
     }
   },
   methods: {
-    addCurrentTodo() {
-      const value = this.newTodo && this.newTodo.trim()
-      if (!value) {
-        return
-      }
-      this.todos.push({
-        text: value,
-        completed: false
-      })
-      this.newTodo = ""
-    },
-    toggleComplete(val, todo) {
-      todo.completed = val
-    },
-    textChanged(newText, todo) {
-      todo.text = newText
-    },
-    removeTodo(val) {
-      this.todos = this.todos.filter(x => x != val)
-    },
-    clearCompleted() {
-      this.todos = filters['active'](this.todos)
-    },
     showAbout() {
       this.shouldShowAbout = true
-    }
+    },
+    ...mapMutations([ADD_TODO, UPDATE_NEW_TODO, CLEAR_COMPLETED])
   },
   router
 }
