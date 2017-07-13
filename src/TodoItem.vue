@@ -10,19 +10,19 @@
 </template>
 
 <script>
-import {SET_COMPLETION_STATE, REMOVE_TODO, UPDATE_TODO_TEXT} from './mutation-types'
+import { SET_COMPLETION_STATE, REMOVE_TODO, UPDATE_TODO_TEXT } from './mutation-types'
 export default {
     props: ["todo"],
     data() {
         return {
             newText: this.todo.text,
             editing: false,
-            isCompleted: this.completed
+            isCompleted: this.todo.completed
         }
     },
     methods: {
         toggleComplete() {
-            this.$store.commit(SET_COMPLETION_STATE, {todo: this.todo, isCompleted: this.isCompleted})
+            this.$store.commit(SET_COMPLETION_STATE, { todo: this.todo, isCompleted: this.isCompleted })
         },
         removeTodo() {
             this.$store.commit(REMOVE_TODO, this.todo)
@@ -36,7 +36,7 @@ export default {
                 return
             }
             this.editing = false
-            this.$store.commit(UPDATE_TODO_TEXT, {todo: this.todo, newText: this.newText})
+            this.$store.commit(UPDATE_TODO_TEXT, { todo: this.todo, newText: this.newText })
         },
         cancelEditing() {
             this.editing = false

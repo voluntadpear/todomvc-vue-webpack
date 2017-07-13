@@ -44,11 +44,13 @@
 
 <script>
 import Vue from 'vue'
-import Vuex, {mapState, mapGetters, mapMutations} from "vuex"
+import Vuex, { mapState, mapGetters, mapMutations } from "vuex"
 import VueRouter from 'vue-router'
-import { 
-  ADD_TODO, 
-  UPDATE_NEW_TODO, 
+import VueFire from 'vuefire'
+import Firebase from 'firebase'
+import {
+  ADD_TODO,
+  UPDATE_NEW_TODO,
   SET_COMPLETION_STATE,
   REMOVE_TODO,
   UPDATE_TODO_TEXT,
@@ -63,14 +65,27 @@ const About = () => import('./About.vue')
 
 Vue.use(VueRouter)
 Vue.use(Vuex)
+Vue.use(VueFire)
+
+const firebaseConfig = {
+  apiKey: "-------",
+  authDomain: "-------",
+  databaseURL: "-------",
+  projectId: "-------",
+  storageBucket: "-------",
+  messagingSenderId: "-------"
+}
+
+let app = Firebase.initializeApp(firebaseConfig)
+
+let db = app.database()
+
+let todosRef = db.ref("todos")
+
 
 const store = new Vuex.Store({
   state: {
-    todos: JSON.parse(localStorage.getItem("todos")) || [],
     newTodo: ""
-  },
-  getters: {
-    remaining: state => state.todos.filter(t => !t.completed).length
   },
   mutations: {
     [ADD_TODO]: state => {
@@ -78,18 +93,25 @@ const store = new Vuex.Store({
       if (!value) {
         return
       }
-      state.todos.push({
+      let newKey = todosRef.push().key;
+      db.ref("todos/" + newKey).set({
         text: value,
         completed: false
       })
       state.newTodo = ""
     },
     [UPDATE_NEW_TODO]: (state, text) => state.newTodo = text,
-    [SET_COMPLETION_STATE]: (state, {todo, isCompleted}) => todo.completed = isCompleted,
-    [REMOVE_TODO]: (state, todo) => state.todos = state.todos.filter(x => x != todo),
-    [UPDATE_TODO_TEXT]: (state, {todo, newText}) => todo.text = newText,
-    [CLEAR_COMPLETED]: state => state.todos = filters['active'](state.todos)
-    
+    [SET_COMPLETION_STATE]: (state, { todo, isCompleted }) => todosRef.child(todo['.key']).child("completed").set(isCompleted),
+    [REMOVE_TODO]: (state, todo) => todosRef.child(todo['.key']).remove(),
+    [UPDATE_TODO_TEXT]: (state, { todo, newText }) => todosRef.child(todo['.key']).child("text").set(newText),
+    [CLEAR_COMPLETED]: state => todosRef.orderByChild("completed").equalTo(true).once('value', (snapshot) => {
+      let updates = {}
+      snapshot.forEach(child => {
+        updates[child.key] = null
+      })
+      todosRef.update(updates)
+    })
+
   },
   strict: true
 })
@@ -125,6 +147,9 @@ export default {
   },
   store,
   computed: {
+    remaining() {
+      return this.todos.filter(t => !t.completed).length
+    },
     areAllCompleted: {
       get: function () {
         return this.remaining === 0
@@ -134,23 +159,13 @@ export default {
       }
     },
     newTodo: {
-      get: function() {
+      get: function () {
         return this.$store.state.newTodo
       },
-      set: function(val) {
+      set: function (val) {
         this.$store.commit(UPDATE_NEW_TODO, val)
       }
     },
-    ...mapState(['todos']),
-    ...mapGetters(['remaining'])
-  },
-  watch: {
-    todos: {
-      handler(val) {
-        localStorage.setItem("todos", JSON.stringify(val))
-      },
-      deep: true
-    }
   },
   methods: {
     showAbout() {
@@ -158,6 +173,9 @@ export default {
     },
     ...mapMutations([ADD_TODO, UPDATE_NEW_TODO, CLEAR_COMPLETED])
   },
-  router
+  router,
+  firebase: {
+    todos: todosRef
+  }
 }
 </script>
