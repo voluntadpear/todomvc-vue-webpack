@@ -1,6 +1,6 @@
 {
-  "name": "my-vue-webpack-project",
-  "description": "A Vue.js project",
+  "name": "todomvc-vue-webpack",
+  "description": "TodoMVC with Vue.js 2 + Webpack",
   "version": "1.0.0",
   "author": "Guillermo Peralta Scura <gperaltascura@gmail.com>",
   "private": true,
